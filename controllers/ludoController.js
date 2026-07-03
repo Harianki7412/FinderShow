@@ -21,13 +21,22 @@ const saveGameState = async (req, res) => {
   try {
     const userId = req.user._id;
     const { pawns, finished, turn, dice, humanPlayer } = req.body;
+
+    // Validate that pawns, finished, turn, dice are provided
+    if (!pawns || !finished || turn === undefined || dice === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: pawns, finished, turn, dice",
+      });
+    }
+
     let game = await ludoGameModel.findOne({ user: userId });
     if (game) {
       game.pawns = pawns;
       game.finished = finished;
       game.turn = turn;
       game.dice = dice;
-      game.humanPlayer = humanPlayer;
+      if (humanPlayer !== undefined) game.humanPlayer = humanPlayer;
       await game.save();
     } else {
       game = new ludoGameModel({
@@ -36,7 +45,7 @@ const saveGameState = async (req, res) => {
         finished,
         turn,
         dice,
-        humanPlayer,
+        humanPlayer: humanPlayer || 0,
       });
       await game.save();
     }
