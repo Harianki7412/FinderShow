@@ -22,6 +22,7 @@ app.use("/api/v1/coins", require("./routes/coinRoutes"));
 app.use("/api/v1/withdrawals", require("./routes/withdrawalRoutes"));
 app.use("/api/v1/payments", require("./routes/paymentRoutes"));
 app.use("/api/v1/admin", require("./routes/adminRoutes"));
+app.use("/api/v1/spinwheel", require("./routes/spinRoutes"));
 
 // Health check
 app.get("/", (req, res) => {
