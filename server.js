@@ -24,6 +24,7 @@ app.use("/api/v1/payments", require("./routes/paymentRoutes"));
 app.use("/api/v1/admin", require("./routes/adminRoutes"));
 app.use("/api/v1/spinwheel", require("./routes/spinRoutes"));
 app.use("/api/v1/ludo", require("./routes/ludoRoutes"));
+app.use("/api/v1/tournaments", require("./routes/tournamentRoutes"));
 
 // Health check
 app.get("/", (req, res) => {

@@ -10,7 +10,6 @@ const ludoGameSchema = new mongoose.Schema(
     },
     pawns: {
       type: [[Number]],
-      required: true,
       default: [
         [-1, -1, -1, -1],
         [-1, -1, -1, -1],
@@ -18,32 +17,9 @@ const ludoGameSchema = new mongoose.Schema(
         [-1, -1, -1, -1],
       ],
     },
-    finished: {
-      type: [Number],
-      required: true,
-      default: [0, 0, 0, 0],
-    },
-    turn: {
-      type: Number,
-      required: true,
-      default: 0,
-      min: 0,
-      max: 3,
-    },
-    dice: {
-      type: Number,
-      required: true,
-      default: 1,
-      min: 1,
-      max: 6,
-    },
-    humanPlayer: {
-      type: Number,
-      required: true,
-      default: 0,
-      min: 0,
-      max: 3,
-    },
+    finished: { type: [Number], default: [0, 0, 0, 0] },
+    turn: { type: Number, default: 0, min: 0, max: 3 },
+    dice: { type: Number, default: 1, min: 1, max: 6 },
   },
   { timestamps: true },
 );
