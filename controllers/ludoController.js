@@ -1,4 +1,4 @@
-const ludoGameModel = require("../models/ludoGame"); // ✅ change to match your file name
+const ludoGameModel = require("../models/ludoModel");
 
 const getGameState = async (req, res) => {
   try {
