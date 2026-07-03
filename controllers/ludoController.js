@@ -1,6 +1,5 @@
-const ludoGameModel = require("../models/LudoGame");
+const ludoGameModel = require("../models/ludoGame"); // ✅ change to match your file name
 
-// ─── Get or create game ──────────────────────────────────────────
 const getGameState = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -16,20 +15,16 @@ const getGameState = async (req, res) => {
   }
 };
 
-// ─── Save game (create or update) ──────────────────────────────
 const saveGameState = async (req, res) => {
   try {
     const userId = req.user._id;
     const { pawns, finished, turn, dice, humanPlayer } = req.body;
-
-    // Validate that pawns, finished, turn, dice are provided
     if (!pawns || !finished || turn === undefined || dice === undefined) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields: pawns, finished, turn, dice",
       });
     }
-
     let game = await ludoGameModel.findOne({ user: userId });
     if (game) {
       game.pawns = pawns;
@@ -56,7 +51,6 @@ const saveGameState = async (req, res) => {
   }
 };
 
-// ─── Reset game ──────────────────────────────────────────────────
 const resetGame = async (req, res) => {
   try {
     const userId = req.user._id;
