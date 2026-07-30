@@ -16,6 +16,6 @@ router.use(adminMiddleware); // ✅ Admin only for all routes below
 router.get("/current", getCurrentLottery);
 router.post("/buy", buyTicket);
 router.get("/history", getLotteryHistory);
-router.post("/draw", adminMiddleware, drawWinner); // ✅ Admin only
+router.post("/draw", drawWinner); // ✅ Admin only
 
 module.exports = router;
