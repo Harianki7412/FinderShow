@@ -1,11 +1,11 @@
 const mongoose = require("mongoose");
 
 const prizeTierSchema = new mongoose.Schema({
-  name: { type: String, required: true }, // e.g., "Jackpot", "2nd Prize", etc.
-  matchCount: { type: Number, required: true }, // numbers matched (5, 4, 3...)
-  bonusMatch: { type: Boolean, default: false }, // bonus number matched?
-  prizePercent: { type: Number, default: 0 }, // percentage of pool (e.g., 50 for jackpot)
-  fixedPrize: { type: Number, default: 0 }, // or fixed amount
+  name: { type: String, required: true },
+  matchCount: { type: Number, required: true },
+  bonusMatch: { type: Boolean, default: false },
+  prizePercent: { type: Number, default: 0 },
+  fixedPrize: { type: Number, default: 0 },
 });
 
 const lotterySchema = new mongoose.Schema(
@@ -19,11 +19,11 @@ const lotterySchema = new mongoose.Schema(
       default: "upcoming",
     },
     ticketPrice: { type: Number, default: 10 },
-    maxNumber: { type: Number, default: 50 }, // max number for main numbers (1-50)
-    maxBonus: { type: Number, default: 10 }, // max bonus number (1-10)
+    maxNumber: { type: Number, default: 50 },
+    maxBonus: { type: Number, default: 10 },
     numbersPerTicket: { type: Number, default: 5 },
     prizeTiers: [prizeTierSchema],
-    winningNumbers: { type: [Number], default: [] }, // [main numbers]
+    winningNumbers: { type: [Number], default: [] },
     winningBonus: { type: Number, default: 0 },
     jackpot: { type: Number, default: 0 },
     totalTickets: { type: Number, default: 0 },
@@ -34,10 +34,8 @@ const lotterySchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// Auto-set status based on date
 lotterySchema.pre("save", function (next) {
-  const now = new Date();
-  if (this.drawDate < now && this.status === "upcoming") {
+  if (this.drawDate < new Date() && this.status === "upcoming") {
     this.status = "active";
   }
   next();

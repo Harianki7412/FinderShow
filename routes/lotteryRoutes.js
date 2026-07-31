@@ -14,13 +14,13 @@ const { adminMiddleware } = require("../middleware/adminMiddleware");
 
 const router = express.Router();
 
-// Public (authenticated)
+// User routes
 router.get("/active", authMiddleware, getActiveLotteries);
 router.get("/:id", authMiddleware, getLotteryDetails);
 router.post("/buy", authMiddleware, buyTicket);
 router.get("/my/tickets", authMiddleware, getMyTickets);
 
-// Admin only
+// Admin routes
 router.post("/create", authMiddleware, adminMiddleware, createLottery);
 router.post("/draw", authMiddleware, adminMiddleware, drawWinner);
 router.get("/admin/all", authMiddleware, adminMiddleware, getAllLotteries);
