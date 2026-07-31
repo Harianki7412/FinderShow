@@ -11,7 +11,6 @@ const { adminMiddleware } = require("../middleware/adminMiddleware");
 const router = express.Router();
 
 router.use(authMiddleware);
-router.use(adminMiddleware);
 
 router.get("/current", getCurrentLottery);
 router.post("/buy", buyTicket);
