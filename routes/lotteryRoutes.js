@@ -11,11 +11,11 @@ const { adminMiddleware } = require("../middleware/adminMiddleware");
 const router = express.Router();
 
 router.use(authMiddleware);
-router.use(adminMiddleware); // ✅ Admin only for all routes below
+router.use(adminMiddleware);
 
 router.get("/current", getCurrentLottery);
 router.post("/buy", buyTicket);
 router.get("/history", getLotteryHistory);
-router.post("/draw", adminMiddleware, drawWinner); // ✅ Admin only
+router.post("/draw", adminMiddleware, drawWinner); // Admin only
 
 module.exports = router;

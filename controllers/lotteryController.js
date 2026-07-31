@@ -1,5 +1,5 @@
-const lotteryModel = require("../models/Lottery");
-const lotteryTicketModel = require("../models/LotteryTicket");
+const lotteryModel = require("../models/lotteryModel");
+const lotteryTicketModel = require("../models/lotteryTicketModel");
 const userModel = require("../models/userModel");
 const transactionModel = require("../models/transactionModel");
 const mongoose = require("mongoose");

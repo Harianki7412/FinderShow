@@ -14,4 +14,4 @@ const lotteryTicketSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-module.exports = mongoose.model("LotteryTicket", lotteryTicketSchema);
+module.exports = mongoose.model("lotteryTicket", lotteryTicketSchema);
