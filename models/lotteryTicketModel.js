@@ -8,10 +8,23 @@ const lotteryTicketSchema = new mongoose.Schema(
       ref: "Lottery",
       required: true,
     },
-    number: { type: Number, required: true },
+    numbers: { type: [Number], required: true }, // selected main numbers
+    bonusNumber: { type: Number, required: true },
+    matchedCount: { type: Number, default: 0 },
+    bonusMatched: { type: Boolean, default: false },
+    prizeWon: { type: Number, default: 0 },
+    prizeTier: { type: String, default: "" },
     isWinner: { type: Boolean, default: false },
   },
   { timestamps: true },
 );
+
+// Ensure numbers are sorted for comparison
+lotteryTicketSchema.pre("save", function (next) {
+  if (this.numbers && this.numbers.length > 0) {
+    this.numbers.sort((a, b) => a - b);
+  }
+  next();
+});
 
 module.exports = mongoose.model("lotteryTicket", lotteryTicketSchema);
