@@ -34,6 +34,7 @@ const lotterySchema = new mongoose.Schema(
   { timestamps: true },
 );
 
+// Auto‑update status on save
 lotterySchema.pre("save", function (next) {
   if (this.drawDate < new Date() && this.status === "upcoming") {
     this.status = "active";
