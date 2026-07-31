@@ -8,10 +8,10 @@ const lotteryTicketSchema = new mongoose.Schema(
       ref: "Lottery",
       required: true,
     },
-    number: { type: Number, required: true }, // 1-100
+    number: { type: Number, required: true },
     isWinner: { type: Boolean, default: false },
   },
   { timestamps: true },
 );
 
-module.exports = mongoose.model("lotteryTicket", lotteryTicketSchema);
+module.exports = mongoose.model("LotteryTicket", lotteryTicketSchema);
