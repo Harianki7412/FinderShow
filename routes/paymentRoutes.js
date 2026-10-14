@@ -1,17 +1,9 @@
-const express = require("express");
-const {
-  createPaymentIntent,
-  confirmPayment,
-  createPayout,
-} = require("../controllers/paymentController");
-const { authMiddleware } = require("../middleware/authMiddleware");
+const router = require("express").Router();
+const ctrl = require("../controllers/paymentController");
+const { protect } = require("../middleware/auth");
 
-const router = express.Router();
-
-router.use(authMiddleware);
-
-router.post("/create-payment-intent", createPaymentIntent);
-router.post("/confirm-payment", confirmPayment);
-router.post("/payout", createPayout);
+router.post("/create-order", protect, ctrl.createOrder);
+router.post("/verify", protect, ctrl.verifyPayment);
+router.post("/webhook", ctrl.webhook); // raw webhook — no auth
 
 module.exports = router;
