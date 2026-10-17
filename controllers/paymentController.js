@@ -10,10 +10,6 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-/**
- * POST /payment/create-order
- * body: { planCode }   // 'platinum' | 'gold'
- */
 exports.createOrder = async (req, res, next) => {
   try {
     const { planCode } = req.body;
@@ -24,9 +20,8 @@ exports.createOrder = async (req, res, next) => {
     const plan = await Plan.findOne({ code: planCode, isActive: true });
     if (!plan) throw new ApiError("Plan not found", 404);
 
-    // Razorpay expects paise
     const amountPaise = Math.round(plan.price * 100);
-    const receipt = `findershow_${planCode}_${req.user._id}_${Date.now()}`;
+    const receipt = `zcoin_${planCode}_${req.user._id}_${Date.now()}`;
 
     const order = await razorpay.orders.create({
       amount: amountPaise,
@@ -67,10 +62,6 @@ exports.createOrder = async (req, res, next) => {
   }
 };
 
-/**
- * POST /payment/verify
- * body: { razorpay_order_id, razorpay_payment_id, razorpay_signature }
- */
 exports.verifyPayment = async (req, res, next) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
@@ -79,7 +70,6 @@ exports.verifyPayment = async (req, res, next) => {
       throw new ApiError("Missing payment verification fields", 400);
     }
 
-    // Verify signature
     const body = `${razorpay_order_id}|${razorpay_payment_id}`;
     const expected = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
@@ -113,11 +103,11 @@ exports.verifyPayment = async (req, res, next) => {
     payment.subscriptionEnd = end;
     await payment.save();
 
-    // Extend from existing expiry if user already has active paid plan
     const user = await User.findById(payment.user);
     const currentExpiry = user.subscription?.expiresAt;
     const shouldExtend =
       user.hasPremium() && currentExpiry && new Date(currentExpiry) > start;
+
     const finalStart = shouldExtend ? user.subscription.startedAt : start;
     const finalEnd = shouldExtend
       ? new Date(
@@ -150,18 +140,19 @@ exports.verifyPayment = async (req, res, next) => {
   }
 };
 
-/**
- * POST /payment/webhook
- * Razorpay webhook — optional but recommended for production.
- * Configure in Razorpay dashboard with the same secret.
- */
 exports.webhook = async (req, res) => {
   try {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
     const signature = req.headers["x-razorpay-signature"];
 
+    if (!secret || !signature) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing signature" });
+    }
+
     const shasum = crypto.createHmac("sha256", secret);
-    shasum.update(JSON.stringify(req.body));
+    shasum.update(req.body);
     const digest = shasum.digest("hex");
 
     if (digest !== signature) {
@@ -170,8 +161,9 @@ exports.webhook = async (req, res) => {
         .json({ success: false, message: "Invalid webhook signature" });
     }
 
-    const event = req.body.event;
-    const payload = req.body.payload?.payment?.entity;
+    const parsed = JSON.parse(req.body.toString());
+    const event = parsed.event;
+    const payload = parsed.payload?.payment?.entity;
 
     if (event === "payment.captured" && payload) {
       const payment = await Payment.findOne({
@@ -181,9 +173,9 @@ exports.webhook = async (req, res) => {
         payment.status = "paid";
         payment.providerPaymentId = payload.id;
         await payment.save();
-        // (Optionally activate subscription here too — same as verify)
       }
     }
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

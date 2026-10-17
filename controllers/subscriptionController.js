@@ -3,7 +3,6 @@ const User = require("../models/User");
 const Payment = require("../models/Payment");
 const { success, ApiError } = require("../helpers/responseHelper");
 
-// GET /plans
 exports.listPlans = async (req, res, next) => {
   try {
     const plans = await Plan.find({ isActive: true }).sort({ order: 1 });
@@ -13,7 +12,6 @@ exports.listPlans = async (req, res, next) => {
   }
 };
 
-// GET /subscription/me
 exports.mySubscription = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
@@ -27,6 +25,8 @@ exports.mySubscription = async (req, res, next) => {
       subscription: user.subscription,
       plan,
       isPremium: user.hasPremium(),
+      isAdFree: user.isAdFree(),
+      adFreeUntil: user.adFreeUntil,
       history,
     });
   } catch (err) {
@@ -34,14 +34,12 @@ exports.mySubscription = async (req, res, next) => {
   }
 };
 
-// POST /subscription/cancel — downgrade to free at end of cycle
 exports.cancelSubscription = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
     if (user.subscription.plan === "free") {
       throw new ApiError("You are already on the free plan", 400);
     }
-    // Keep plan active until expiry but mark as cancelled (you can add `cancelled:true` field)
     user.subscription.cancelledAt = new Date();
     await user.save();
     success(

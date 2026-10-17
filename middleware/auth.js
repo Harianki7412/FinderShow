@@ -8,11 +8,9 @@ const protect = async (req, res, next) => {
     if (!header || !header.startsWith("Bearer ")) {
       return fail(res, "Not authorized, no token", 401);
     }
-
     const decoded = verifyToken(header.split(" ")[1]);
     const user = await User.findById(decoded.id);
     if (!user) return fail(res, "User no longer exists", 401);
-
     req.user = user;
     next();
   } catch (err) {
@@ -21,12 +19,12 @@ const protect = async (req, res, next) => {
 };
 
 const adminOnly = (req, res, next) => {
-  if (req.user?.role !== "admin")
+  if (req.user?.role !== "admin") {
     return fail(res, "Admin access required", 403);
+  }
   next();
 };
 
-/** Optional auth — attaches user if token exists but doesn't reject */
 const optionalAuth = async (req, res, next) => {
   try {
     const header = req.headers.authorization;

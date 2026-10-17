@@ -6,8 +6,6 @@ const { protect, adminOnly, optionalAuth } = require("../middleware/auth");
 // Public
 router.get("/", ctrl.list);
 router.get("/:id", optionalAuth, ctrl.getOne);
-
-// Episodes nested under content
 router.get("/:contentId/episodes", epCtrl.listByContent);
 
 // Admin

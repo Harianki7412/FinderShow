@@ -9,19 +9,17 @@ const planSchema = new mongoose.Schema(
       required: true,
     },
     name: { type: String, required: true },
-    price: { type: Number, required: true }, // in INR
+    price: { type: Number, required: true },
     currency: { type: String, default: "INR" },
-    durationDays: { type: Number, required: true }, // 30 for platinum, 90 for gold
+    durationDays: { type: Number, required: true },
     features: [{ type: String }],
 
-    // Ad behaviour
     ads: {
       enabled: { type: Boolean, default: false },
-      adsPerHour: { type: Number, default: 0 }, // 2 for free
+      adsPerHour: { type: Number, default: 0 },
       adDurationSeconds: { type: Number, default: 30 },
     },
 
-    // Content access
     maxQuality: {
       type: String,
       enum: ["480p", "720p", "1080p", "4k"],

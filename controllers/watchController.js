@@ -9,8 +9,7 @@ const MINUTE_MS = 60 * 1000;
 
 /**
  * POST /watch/start
- * body: { contentId, episodeId? }
- * Returns: stream info (URL + HLS) + ad schedule
+ * Body: { contentId, episodeId? }
  */
 exports.startSession = async (req, res, next) => {
   try {
@@ -18,10 +17,10 @@ exports.startSession = async (req, res, next) => {
     const content = await Content.findById(contentId).lean();
     if (!content) throw new ApiError("Content not found", 404);
 
-    // Premium content gate
     const planCode = req.user.subscription?.plan || "free";
     const plan = await Plan.findOne({ code: planCode, isActive: true });
     const isPremiumUser = req.user.hasPremium();
+    const isAdFree = req.user.isAdFree();
 
     if (content.isPremium && !isPremiumUser) {
       throw new ApiError(
@@ -30,32 +29,31 @@ exports.startSession = async (req, res, next) => {
       );
     }
 
-    // Ad policy
-    const adsEnabled = plan?.ads?.enabled ?? true;
+    const adsEnabled = (plan?.ads?.enabled ?? true) && !isAdFree;
     const adsPerHour = plan?.ads?.adsPerHour ?? 2;
     const adDuration = plan?.ads?.adDurationSeconds ?? 30;
     const adIntervalMs =
       adsEnabled && adsPerHour > 0 ? (60 / adsPerHour) * MINUTE_MS : 0;
 
-    // Build stream info
     let stream = {};
     if (episodeId) {
       const ep = await Episode.findById(episodeId).lean();
       if (!ep) throw new ApiError("Episode not found", 404);
       stream = {
-        videoUrl: ep.video?.url,
-        hlsUrl: ep.video?.hls,
+        hlsUrl: ep.video?.hlsUrl,
+        thumbnail: ep.video?.thumbnail,
         duration: ep.video?.duration,
+        uid: ep.video?.uid,
       };
     } else {
       stream = {
-        videoUrl: content.video?.url,
-        hlsUrl: content.video?.hls,
+        hlsUrl: content.video?.hlsUrl,
+        thumbnail: content.video?.thumbnail,
         duration: content.video?.duration,
+        uid: content.video?.uid,
       };
     }
 
-    // Open / reuse session
     let session = await WatchSession.findOne({
       user: req.user._id,
       content: content._id,
@@ -68,7 +66,7 @@ exports.startSession = async (req, res, next) => {
         user: req.user._id,
         content: content._id,
         episode: episodeId || null,
-        lastAdShownAt: new Date(), // start the 30-min clock on session start
+        lastAdShownAt: new Date(),
       });
     }
 
@@ -81,9 +79,9 @@ exports.startSession = async (req, res, next) => {
           enabled: adsEnabled,
           perHour: adsPerHour,
           durationSeconds: adDuration,
-          // Client uses this to schedule the next ad
           nextAdAfterSeconds: adIntervalMs / 1000,
           lastAdShownAt: session.lastAdShownAt,
+          adFreeUntil: req.user.adFreeUntil,
         },
       },
       "Session started",
@@ -95,8 +93,6 @@ exports.startSession = async (req, res, next) => {
 
 /**
  * GET /watch/:sessionId/ad
- * Called by the player when the "next ad" timer fires.
- * Returns an ad OR { ad: null } if not yet due.
  */
 exports.getScheduledAd = async (req, res, next) => {
   try {
@@ -109,8 +105,9 @@ exports.getScheduledAd = async (req, res, next) => {
     const plan = await Plan.findOne({
       code: req.user.subscription?.plan || "free",
     });
-    if (!plan?.ads?.enabled)
+    if (!plan?.ads?.enabled || req.user.isAdFree()) {
       return success(res, { ad: null, reason: "no-ads-for-plan" });
+    }
 
     const adsPerHour = plan.ads.adsPerHour || 2;
     const intervalMs = (60 / adsPerHour) * MINUTE_MS;
@@ -123,14 +120,12 @@ exports.getScheduledAd = async (req, res, next) => {
       });
     }
 
-    // Pick a random active ad targeted at this plan
     const [ad] = await Ad.aggregate([
       { $match: { isActive: true, targetPlans: plan.code } },
       { $sample: { size: 1 } },
     ]);
 
     if (!ad) {
-      // Reset timer even if no ad — avoids spamming every request
       session.lastAdShownAt = new Date();
       await session.save();
       return success(res, { ad: null, reason: "no-ad-inventory" });
@@ -147,7 +142,7 @@ exports.getScheduledAd = async (req, res, next) => {
       ad: {
         _id: ad._id,
         title: ad.title,
-        videoUrl: ad.video.url,
+        videoUrl: ad.video.hlsUrl,
         duration: ad.video.duration,
         clickUrl: ad.clickUrl,
         skipAfterSeconds: ad.skipAfterSeconds,
@@ -161,7 +156,6 @@ exports.getScheduledAd = async (req, res, next) => {
 
 /**
  * POST /watch/:sessionId/ad/:adId/complete
- * body: { watchedSeconds, completed, skipped }
  */
 exports.recordAdEvent = async (req, res, next) => {
   try {
@@ -191,7 +185,6 @@ exports.recordAdEvent = async (req, res, next) => {
 
 /**
  * POST /watch/:sessionId/progress
- * body: { positionSeconds }
  */
 exports.updateProgress = async (req, res, next) => {
   try {
@@ -200,7 +193,7 @@ exports.updateProgress = async (req, res, next) => {
     if (!session) throw new ApiError("Session not found", 404);
 
     session.lastPositionSeconds = positionSeconds;
-    session.watchTimeSeconds += 5; // client can pass delta; simple for now
+    session.watchTimeSeconds += 5;
     await session.save();
 
     success(res, {}, "Progress saved");

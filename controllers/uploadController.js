@@ -1,30 +1,127 @@
 const {
+  createDirectUploadUrl,
+  uploadVideoFromUrl,
+  getVideo,
+  deleteVideo,
+  getHlsUrl,
+  getThumbnailUrl,
   uploadImage,
-  uploadVideo,
-  deleteAsset,
-  buildHlsUrl,
-} = require("../helpers/cloudinaryHelper");
+  deleteImage,
+} = require("../helpers/cloudflareHelper");
 const { success, ApiError } = require("../helpers/responseHelper");
 
-/**
- * POST /upload/image
- * field: file
- */
-exports.uploadImageAsset = async (req, res, next) => {
-  try {
-    if (!req.file) throw new ApiError("No image file provided", 400);
+// ─────────────────────────────────────────────
+//  VIDEO UPLOADS (Cloudflare Stream)
+// ─────────────────────────────────────────────
 
-    const folder = process.env.CLOUDINARY_IMAGE_FOLDER || "findershow/images";
-    const result = await uploadImage(req.file.buffer, folder);
+exports.createVideoUploadUrl = async (req, res, next) => {
+  try {
+    const { maxDurationSeconds = 7200, meta = {} } = req.body;
+
+    const result = await createDirectUploadUrl({
+      maxDurationSeconds,
+      creator: req.user._id.toString(),
+      meta: {
+        ...meta,
+        uploadedBy: req.user.name,
+        uploadedAt: new Date().toISOString(),
+      },
+    });
+
+    success(
+      res,
+      { uploadURL: result.uploadURL, uid: result.uid },
+      "Upload URL created",
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.uploadVideoFromUrl = async (req, res, next) => {
+  try {
+    const { url, meta = {} } = req.body;
+    if (!url) throw new ApiError("URL is required", 400);
+
+    const result = await uploadVideoFromUrl(url, {
+      ...meta,
+      uploadedBy: req.user.name,
+    });
 
     success(
       res,
       {
-        url: result.secure_url,
-        publicId: result.public_id,
-        width: result.width,
-        height: result.height,
-        format: result.format,
+        uid: result.uid,
+        hlsUrl: getHlsUrl(result.uid),
+        thumbnail: getThumbnailUrl(result.uid),
+        status: result.status,
+        readyToStream: result.readyToStream,
+      },
+      "Video ingestion started",
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getVideoStatus = async (req, res, next) => {
+  try {
+    const video = await getVideo(req.params.uid);
+    success(res, {
+      uid: video.uid,
+      status: video.status,
+      readyToStream: video.readyToStream,
+      duration: video.duration,
+      size: video.size,
+      thumbnail: getThumbnailUrl(video.uid),
+      hlsUrl: getHlsUrl(video.uid),
+      playback: video.playback,
+      meta: video.meta,
+      created: video.created,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.deleteVideoAsset = async (req, res, next) => {
+  try {
+    const { uid } = req.params;
+    if (!uid) throw new ApiError("Video UID is required", 400);
+
+    await deleteVideo(uid);
+    success(res, { uid }, "Video deleted from Stream");
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─────────────────────────────────────────────
+//  IMAGE UPLOADS (Cloudflare Images)
+// ─────────────────────────────────────────────
+
+exports.uploadImageAsset = async (req, res, next) => {
+  try {
+    if (!req.file) throw new ApiError("No image file provided", 400);
+
+    const result = await uploadImage(
+      req.file.buffer,
+      req.file.originalname || `image-${Date.now()}.jpg`,
+      { creator: req.user._id.toString() },
+    );
+
+    const variants = result.variants || [];
+    const url = variants[0] || "";
+    const thumbnail = variants[1] || variants[0] || "";
+
+    success(
+      res,
+      {
+        id: result.id,
+        url,
+        thumbnail,
+        variants,
+        filename: result.filename,
       },
       "Image uploaded",
     );
@@ -33,50 +130,53 @@ exports.uploadImageAsset = async (req, res, next) => {
   }
 };
 
-/**
- * POST /upload/video
- * field: file
- * Returns: mp4 fallback + HLS URL (if generated)
- */
-exports.uploadVideoAsset = async (req, res, next) => {
+exports.uploadMultipleImages = async (req, res, next) => {
   try {
-    if (!req.file) throw new ApiError("No video file provided", 400);
+    const files = req.files || [];
+    if (!files.length) throw new ApiError("No image files provided", 400);
 
-    const folder = process.env.CLOUDINARY_VIDEO_FOLDER || "findershow/videos";
-    const result = await uploadVideo(req.file.buffer, folder, {
-      generateHls: true,
-    });
+    const uploaded = [];
+    const failed = [];
+
+    for (const file of files) {
+      try {
+        const result = await uploadImage(
+          file.buffer,
+          file.originalname || `image-${Date.now()}.jpg`,
+          { creator: req.user._id.toString() },
+        );
+        const variants = result.variants || [];
+        uploaded.push({
+          id: result.id,
+          url: variants[0] || "",
+          thumbnail: variants[1] || variants[0] || "",
+          variants,
+          filename: result.filename,
+          originalName: file.originalname,
+        });
+      } catch (err) {
+        failed.push({ originalName: file.originalname, error: err.message });
+      }
+    }
 
     success(
       res,
-      {
-        url: result.secure_url,
-        publicId: result.public_id,
-        duration: result.duration,
-        format: result.format,
-        bytes: result.bytes,
-        hls: buildHlsUrl(result.public_id),
-        // Eager transformations run async; you can fetch them via Admin API later
-      },
-      "Video uploaded",
+      { uploaded, failed },
+      `${uploaded.length} uploaded, ${failed.length} failed`,
+      uploaded.length ? 200 : 400,
     );
   } catch (err) {
     next(err);
   }
 };
 
-/**
- * DELETE /upload/:publicId(*)
- * query: ?type=image|video
- */
-exports.deleteAsset = async (req, res, next) => {
+exports.deleteImageAsset = async (req, res, next) => {
   try {
-    const { publicId } = req.params;
-    const type = req.query.type === "video" ? "video" : "image";
-    if (!publicId) throw new ApiError("publicId required", 400);
+    const { id } = req.params;
+    if (!id) throw new ApiError("Image ID is required", 400);
 
-    await deleteAsset(publicId, type);
-    success(res, {}, "Deleted from Cloudinary");
+    await deleteImage(id);
+    success(res, { id }, "Image deleted");
   } catch (err) {
     next(err);
   }

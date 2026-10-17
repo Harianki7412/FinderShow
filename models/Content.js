@@ -1,5 +1,27 @@
 const mongoose = require("mongoose");
 
+const imageSchema = new mongoose.Schema(
+  {
+    id: String,
+    url: String,
+    thumbnail: String,
+  },
+  { _id: false },
+);
+
+const videoSchema = new mongoose.Schema(
+  {
+    uid: String,
+    hlsUrl: String,
+    thumbnail: String,
+    duration: Number,
+    status: String,
+    readyToStream: Boolean,
+    requireSignedURLs: Boolean,
+  },
+  { _id: false },
+);
+
 const contentSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true, index: true },
@@ -18,23 +40,12 @@ const contentSchema = new mongoose.Schema(
     cast: [String],
     director: String,
 
-    poster: {
-      url: { type: String, required: true },
-      publicId: { type: String, required: true },
-    },
-    backdrop: { url: String, publicId: String },
-    trailer: { url: String, publicId: String },
+    poster: imageSchema,
+    backdrop: imageSchema,
+    trailer: videoSchema,
+    video: videoSchema, // movies only
 
-    // For movies only. Series/anime use Episode model.
-    video: {
-      url: String,
-      publicId: String,
-      duration: Number,
-      hls: String, // Cloudinary HLS stream URL
-    },
-
-    // Access control
-    isPremium: { type: Boolean, default: false }, // premium = paid plans only
+    isPremium: { type: Boolean, default: false },
     isFeatured: { type: Boolean, default: false },
     isPublished: { type: Boolean, default: true },
 
@@ -46,7 +57,6 @@ const contentSchema = new mongoose.Schema(
 
 contentSchema.index({ title: "text", description: "text" });
 
-// Auto-slug
 contentSchema.pre("save", function () {
   if (this.isModified("title") && !this.slug) {
     this.slug = this.title

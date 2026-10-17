@@ -12,13 +12,20 @@ const episodeSchema = new mongoose.Schema(
     episodeNumber: { type: Number, required: true },
     title: { type: String, required: true },
     description: { type: String, default: "" },
-    thumbnail: { url: String, publicId: String },
+
+    thumbnail: {
+      id: String,
+      url: String,
+      cloudflareUid: String,
+    },
 
     video: {
-      url: { type: String, required: true },
-      publicId: { type: String, required: true },
+      uid: { type: String, required: true },
+      hlsUrl: { type: String, required: true },
+      thumbnail: String,
       duration: { type: Number, default: 0 },
-      hls: String,
+      status: String,
+      readyToStream: { type: Boolean, default: false },
     },
 
     isPremium: { type: Boolean, default: true },

@@ -25,12 +25,17 @@ const userSchema = new mongoose.Schema(
       startedAt: { type: Date, default: null },
       expiresAt: { type: Date, default: null },
       isActive: { type: Boolean, default: true },
+      cancelledAt: { type: Date, default: null },
     },
+
+    // Rewarded ad unlock
+    adFreeUntil: { type: Date, default: null },
+    adFreeReason: { type: String, default: null }, // 'rewarded' | 'premium'
   },
   { timestamps: true },
 );
 
-// ✅ Mongoose 8/9 style — no `next` argument
+// Mongoose 8/9 style — no next()
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 10);
@@ -45,6 +50,12 @@ userSchema.methods.hasPremium = function () {
   if (this.subscription.plan === "free") return false;
   if (!this.subscription.expiresAt) return false;
   return new Date() < new Date(this.subscription.expiresAt);
+};
+
+userSchema.methods.isAdFree = function () {
+  if (this.hasPremium()) return true;
+  if (this.adFreeUntil && new Date() < new Date(this.adFreeUntil)) return true;
+  return false;
 };
 
 module.exports = mongoose.model("User", userSchema);

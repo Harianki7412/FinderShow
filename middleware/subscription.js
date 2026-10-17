@@ -1,9 +1,6 @@
 const Plan = require("../models/Plan");
 const { fail } = require("../helpers/responseHelper");
 
-/**
- * Require an active paid plan (platinum or gold).
- */
 const requirePremium = async (req, res, next) => {
   const user = req.user;
   if (!user) return fail(res, "Login required", 401);
@@ -13,9 +10,6 @@ const requirePremium = async (req, res, next) => {
   next();
 };
 
-/**
- * Attach the user's active plan to req.plan for downstream logic (ads etc.)
- */
 const attachPlan = async (req, res, next) => {
   try {
     const planCode = req.user?.subscription?.plan || "free";

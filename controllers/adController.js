@@ -1,8 +1,8 @@
 const Ad = require("../models/Ad");
-const { deleteAsset } = require("../helpers/cloudinaryHelper");
+const { deleteVideo } = require("../helpers/cloudflareHelper");
 const { success, ApiError } = require("../helpers/responseHelper");
 
-// GET /ads/active — returns a random active ad for the user's plan
+// GET /ads/active
 exports.getActiveAd = async (req, res, next) => {
   try {
     const planCode = req.user?.subscription?.plan || "free";
@@ -66,7 +66,7 @@ exports.remove = async (req, res, next) => {
   try {
     const ad = await Ad.findById(req.params.id);
     if (!ad) throw new ApiError("Ad not found", 404);
-    if (ad.video?.publicId) await deleteAsset(ad.video.publicId, "video");
+    if (ad.video?.uid) await deleteVideo(ad.video.uid);
     await ad.deleteOne();
     success(res, {}, "Ad deleted");
   } catch (err) {

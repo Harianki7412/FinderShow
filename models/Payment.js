@@ -10,7 +10,7 @@ const paymentSchema = new mongoose.Schema(
     },
     plan: { type: String, enum: ["platinum", "gold"], required: true },
     planId: { type: mongoose.Schema.Types.ObjectId, ref: "Plan" },
-    amount: { type: Number, required: true }, // in INR
+    amount: { type: Number, required: true },
     currency: { type: String, default: "INR" },
 
     provider: {

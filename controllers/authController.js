@@ -1,7 +1,7 @@
 const User = require("../models/User");
 const Plan = require("../models/Plan");
 const { signToken } = require("../helpers/jwtHelper");
-const { success, fail, ApiError } = require("../helpers/responseHelper");
+const { success, ApiError } = require("../helpers/responseHelper");
 
 const buildAuthPayload = (user) => ({
   token: signToken(user._id),
@@ -10,15 +10,18 @@ const buildAuthPayload = (user) => ({
     name: user.name,
     email: user.email,
     role: user.role,
+    avatar: user.avatar,
     subscription: user.subscription,
+    adFreeUntil: user.adFreeUntil,
   },
 });
 
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password)
+    const { name, email, password, role } = req.body;
+    if (!name || !email || !password) {
       throw new ApiError("All fields are required", 400);
+    }
 
     const exists = await User.findOne({ email });
     if (exists) throw new ApiError("Email already registered", 409);
@@ -29,7 +32,7 @@ exports.register = async (req, res, next) => {
       name,
       email,
       password,
-      role: "user",
+      role: role === "admin" ? "admin" : "user",
       subscription: {
         plan: "free",
         planId: freePlan?._id,
@@ -52,16 +55,18 @@ exports.login = async (req, res, next) => {
     }
 
     // Auto-expire paid plans
-    if (user.subscription?.plan !== "free" && user.subscription?.expiresAt) {
-      if (new Date() > new Date(user.subscription.expiresAt)) {
-        const freePlan = await Plan.findOne({ code: "free" });
-        user.subscription = {
-          plan: "free",
-          planId: freePlan?._id,
-          isActive: true,
-        };
-        await user.save();
-      }
+    if (
+      user.subscription?.plan !== "free" &&
+      user.subscription?.expiresAt &&
+      new Date() > new Date(user.subscription.expiresAt)
+    ) {
+      const freePlan = await Plan.findOne({ code: "free" });
+      user.subscription = {
+        plan: "free",
+        planId: freePlan?._id,
+        isActive: true,
+      };
+      await user.save();
     }
 
     success(res, buildAuthPayload(user), "Logged in");

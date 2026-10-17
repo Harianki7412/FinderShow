@@ -22,7 +22,6 @@ const watchSessionSchema = new mongoose.Schema(
     content: { type: mongoose.Schema.Types.ObjectId, ref: "Content" },
     episode: { type: mongoose.Schema.Types.ObjectId, ref: "Episode" },
 
-    // Ad scheduling
     lastAdShownAt: { type: Date, default: null },
     adsShownThisSession: { type: Number, default: 0 },
     adEvents: [adEventSchema],
