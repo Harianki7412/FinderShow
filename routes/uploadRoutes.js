@@ -19,7 +19,7 @@ router.get("/video/:slug/status", protect, adminOnly, ctrl.getVideoStatus);
 router.get("/video/:slug/stream", protect, adminOnly, ctrl.getVideoStream);
 router.delete("/video/:slug", protect, adminOnly, ctrl.deleteVideoAsset);
 
-// ── Subtitles (Abyss.to) ──
+// ── Subtitles ──
 router.post(
   "/video/:slug/subtitles",
   protect,
