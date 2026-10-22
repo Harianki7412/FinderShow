@@ -1,6 +1,7 @@
 const Content = require("../models/Content");
 const Episode = require("../models/Episode");
-const { deleteVideo, deleteImage } = require("../helpers/cloudflareHelper");
+const { deleteImage } = require("../helpers/cloudinaryHelper");
+const { deleteFile } = require("../helpers/abyssHelper");
 const { success, ApiError } = require("../helpers/responseHelper");
 
 exports.list = async (req, res, next) => {
@@ -97,22 +98,30 @@ exports.remove = async (req, res, next) => {
     if (!content) throw new ApiError("Content not found", 404);
 
     const cleanup = [];
-    if (content.poster?.id) cleanup.push(deleteImage(content.poster.id));
-    if (content.backdrop?.id) cleanup.push(deleteImage(content.backdrop.id));
-    if (content.trailer?.uid) cleanup.push(deleteVideo(content.trailer.uid));
-    if (content.video?.uid) cleanup.push(deleteVideo(content.video.uid));
 
+    // Cloudinary images
+    if (content.poster?.publicId)
+      cleanup.push(deleteImage(content.poster.publicId));
+    if (content.backdrop?.publicId)
+      cleanup.push(deleteImage(content.backdrop.publicId));
+
+    // Abyss videos
+    if (content.trailer?.slug) cleanup.push(deleteFile(content.trailer.slug));
+    if (content.video?.slug) cleanup.push(deleteFile(content.video.slug));
+
+    // Episodes
     const episodes = await Episode.find({ content: content._id });
     episodes.forEach((ep) => {
-      if (ep.video?.uid) cleanup.push(deleteVideo(ep.video.uid));
-      if (ep.thumbnail?.id) cleanup.push(deleteImage(ep.thumbnail.id));
+      if (ep.video?.slug) cleanup.push(deleteFile(ep.video.slug));
+      if (ep.thumbnail?.publicId)
+        cleanup.push(deleteImage(ep.thumbnail.publicId));
     });
 
     await Promise.allSettled(cleanup);
     await Episode.deleteMany({ content: content._id });
     await content.deleteOne();
 
-    success(res, {}, "Content and all Cloudflare assets deleted");
+    success(res, {}, "Content and all media deleted");
   } catch (err) {
     next(err);
   }

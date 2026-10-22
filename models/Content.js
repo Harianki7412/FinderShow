@@ -1,23 +1,23 @@
 const mongoose = require("mongoose");
 
+// Cloudinary image
 const imageSchema = new mongoose.Schema(
   {
-    id: String,
     url: String,
-    thumbnail: String,
+    publicId: String,
   },
   { _id: false },
 );
 
+// Abyss.to video
 const videoSchema = new mongoose.Schema(
   {
-    uid: String,
-    hlsUrl: String,
-    thumbnail: String,
-    duration: Number,
-    status: String,
-    readyToStream: Boolean,
-    requireSignedURLs: Boolean,
+    slug: String,
+    embedUrl: String,
+    name: String,
+    size: Number,
+    status: String, // 'waiting' | 'ready' | 'error'
+    resolutions: [String], // ['SD','HD','FullHD','2K','4K']
   },
   { _id: false },
 );
@@ -43,7 +43,7 @@ const contentSchema = new mongoose.Schema(
     poster: imageSchema,
     backdrop: imageSchema,
     trailer: videoSchema,
-    video: videoSchema, // movies only
+    video: videoSchema,
 
     isPremium: { type: Boolean, default: false },
     isFeatured: { type: Boolean, default: false },

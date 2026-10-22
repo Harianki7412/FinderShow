@@ -28,9 +28,8 @@ const userSchema = new mongoose.Schema(
       cancelledAt: { type: Date, default: null },
     },
 
-    // Rewarded ad unlock
     adFreeUntil: { type: Date, default: null },
-    adFreeReason: { type: String, default: null }, // 'rewarded' | 'premium'
+    adFreeReason: { type: String, default: null },
   },
   { timestamps: true },
 );

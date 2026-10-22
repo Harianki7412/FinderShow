@@ -3,9 +3,15 @@ require("colors");
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
+const path = require("path");
+const fs = require("fs");
 const connectDB = require("./config/db");
 const routes = require("./routes");
 const errorHandler = require("./middleware/errorHandler");
+
+// Ensure temp dir exists for video uploads
+const tmpDir = path.join(__dirname, "tmp", "uploads");
+if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
 
 const app = express();
 
@@ -18,15 +24,15 @@ app.use(
   }),
 );
 
-// Razorpay webhook needs raw body — mount before express.json()
+// Razorpay webhook needs raw body
 app.use("/api/v1/payment/webhook", express.raw({ type: "application/json" }));
 
 app.use(express.json({ limit: "15mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 app.use(morgan("dev"));
 
 app.get("/", (_, res) =>
-  res.json({ status: "ok", service: "zcoin-api", version: "v1" }),
+  res.json({ status: "ok", service: "FinderShow-api", version: "v1" }),
 );
 
 app.use("/api/v1", routes);

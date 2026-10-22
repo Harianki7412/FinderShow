@@ -22,7 +22,6 @@ exports.register = async (req, res, next) => {
     if (!name || !email || !password) {
       throw new ApiError("All fields are required", 400);
     }
-
     const exists = await User.findOne({ email });
     if (exists) throw new ApiError("Email already registered", 409);
 

@@ -3,14 +3,11 @@ const Content = require("../models/Content");
 const Episode = require("../models/Episode");
 const Ad = require("../models/Ad");
 const Plan = require("../models/Plan");
+const { getStreamInfo } = require("../helpers/abyssHelper");
 const { success, ApiError } = require("../helpers/responseHelper");
 
 const MINUTE_MS = 60 * 1000;
 
-/**
- * POST /watch/start
- * Body: { contentId, episodeId? }
- */
 exports.startSession = async (req, res, next) => {
   try {
     const { contentId, episodeId } = req.body;
@@ -35,25 +32,20 @@ exports.startSession = async (req, res, next) => {
     const adIntervalMs =
       adsEnabled && adsPerHour > 0 ? (60 / adsPerHour) * MINUTE_MS : 0;
 
-    let stream = {};
+    // Resolve stream from Abyss
+    let streamSlug;
     if (episodeId) {
       const ep = await Episode.findById(episodeId).lean();
       if (!ep) throw new ApiError("Episode not found", 404);
-      stream = {
-        hlsUrl: ep.video?.hlsUrl,
-        thumbnail: ep.video?.thumbnail,
-        duration: ep.video?.duration,
-        uid: ep.video?.uid,
-      };
+      streamSlug = ep.video?.slug;
     } else {
-      stream = {
-        hlsUrl: content.video?.hlsUrl,
-        thumbnail: content.video?.thumbnail,
-        duration: content.video?.duration,
-        uid: content.video?.uid,
-      };
+      streamSlug = content.video?.slug;
     }
+    if (!streamSlug) throw new ApiError("Video not uploaded yet", 404);
 
+    const stream = await getStreamInfo(streamSlug);
+
+    // Watch session
     let session = await WatchSession.findOne({
       user: req.user._id,
       content: content._id,
@@ -91,9 +83,6 @@ exports.startSession = async (req, res, next) => {
   }
 };
 
-/**
- * GET /watch/:sessionId/ad
- */
 exports.getScheduledAd = async (req, res, next) => {
   try {
     const session = await WatchSession.findById(req.params.sessionId);
@@ -138,12 +127,17 @@ exports.getScheduledAd = async (req, res, next) => {
 
     Ad.findByIdAndUpdate(ad._id, { $inc: { impressions: 1 } }).exec();
 
+    // Ad stream
+    const adStream = await getStreamInfo(ad.video.slug);
+
     success(res, {
       ad: {
         _id: ad._id,
         title: ad.title,
-        videoUrl: ad.video.hlsUrl,
-        duration: ad.video.duration,
+        slug: ad.video.slug,
+        embedUrl: adStream.embedUrl,
+        directUrl: adStream.directUrl,
+        duration: ad.video?.size ? 30 : 30,
         clickUrl: ad.clickUrl,
         skipAfterSeconds: ad.skipAfterSeconds,
       },
@@ -154,9 +148,6 @@ exports.getScheduledAd = async (req, res, next) => {
   }
 };
 
-/**
- * POST /watch/:sessionId/ad/:adId/complete
- */
 exports.recordAdEvent = async (req, res, next) => {
   try {
     const { adId } = req.params;
@@ -183,9 +174,6 @@ exports.recordAdEvent = async (req, res, next) => {
   }
 };
 
-/**
- * POST /watch/:sessionId/progress
- */
 exports.updateProgress = async (req, res, next) => {
   try {
     const { positionSeconds = 0 } = req.body;
@@ -202,9 +190,6 @@ exports.updateProgress = async (req, res, next) => {
   }
 };
 
-/**
- * POST /watch/:sessionId/end
- */
 exports.endSession = async (req, res, next) => {
   try {
     const { completed = false } = req.body;

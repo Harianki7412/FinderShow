@@ -1,5 +1,17 @@
 const mongoose = require("mongoose");
 
+const videoSchema = new mongoose.Schema(
+  {
+    slug: String,
+    embedUrl: String,
+    name: String,
+    size: Number,
+    status: String,
+    resolutions: [String],
+  },
+  { _id: false },
+);
+
 const episodeSchema = new mongoose.Schema(
   {
     content: {
@@ -14,19 +26,11 @@ const episodeSchema = new mongoose.Schema(
     description: { type: String, default: "" },
 
     thumbnail: {
-      id: String,
       url: String,
-      cloudflareUid: String,
+      publicId: String,
     },
 
-    video: {
-      uid: { type: String, required: true },
-      hlsUrl: { type: String, required: true },
-      thumbnail: String,
-      duration: { type: Number, default: 0 },
-      status: String,
-      readyToStream: { type: Boolean, default: false },
-    },
+    video: videoSchema,
 
     isPremium: { type: Boolean, default: true },
     isPublished: { type: Boolean, default: true },

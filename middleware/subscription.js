@@ -2,9 +2,8 @@ const Plan = require("../models/Plan");
 const { fail } = require("../helpers/responseHelper");
 
 const requirePremium = async (req, res, next) => {
-  const user = req.user;
-  if (!user) return fail(res, "Login required", 401);
-  if (!user.hasPremium()) {
+  if (!req.user) return fail(res, "Login required", 401);
+  if (!req.user.hasPremium()) {
     return fail(res, "Premium subscription required", 403);
   }
   next();

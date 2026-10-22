@@ -1,15 +1,41 @@
 const router = require("express").Router();
 const ctrl = require("../controllers/uploadController");
 const { protect, adminOnly } = require("../middleware/auth");
-const { uploadImage } = require("../middleware/upload");
+const {
+  uploadImage,
+  uploadVideo,
+  uploadSubtitle,
+} = require("../middleware/upload");
 
-// ── Video (Cloudflare Stream) ──
-router.post("/video/direct-url", protect, adminOnly, ctrl.createVideoUploadUrl);
-router.post("/video/from-url", protect, adminOnly, ctrl.uploadVideoFromUrl);
-router.get("/video/:uid/status", protect, adminOnly, ctrl.getVideoStatus);
-router.delete("/video/:uid", protect, adminOnly, ctrl.deleteVideoAsset);
+// ── Video (Abyss.to) ──
+router.post(
+  "/video",
+  protect,
+  adminOnly,
+  uploadVideo.single("file"),
+  ctrl.uploadVideoAsset,
+);
+router.get("/video/:slug/status", protect, adminOnly, ctrl.getVideoStatus);
+router.get("/video/:slug/stream", protect, adminOnly, ctrl.getVideoStream);
+router.delete("/video/:slug", protect, adminOnly, ctrl.deleteVideoAsset);
 
-// ── Images (Cloudflare Images) ──
+// ── Subtitles (Abyss.to) ──
+router.post(
+  "/video/:slug/subtitles",
+  protect,
+  adminOnly,
+  uploadSubtitle.single("file"),
+  ctrl.uploadSubtitleAsset,
+);
+router.get(
+  "/video/:slug/subtitles",
+  protect,
+  adminOnly,
+  ctrl.listSubtitleAssets,
+);
+router.delete("/subtitles/:id", protect, adminOnly, ctrl.deleteSubtitleAsset);
+
+// ── Image (Cloudinary) ──
 router.post(
   "/image",
   protect,
@@ -17,13 +43,6 @@ router.post(
   uploadImage.single("file"),
   ctrl.uploadImageAsset,
 );
-router.post(
-  "/images",
-  protect,
-  adminOnly,
-  uploadImage.array("files", 5),
-  ctrl.uploadMultipleImages,
-);
-router.delete("/image/:id", protect, adminOnly, ctrl.deleteImageAsset);
+router.delete("/image", protect, adminOnly, ctrl.deleteImageAsset);
 
 module.exports = router;

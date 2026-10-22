@@ -1,18 +1,23 @@
 const mongoose = require("mongoose");
 
+const videoSchema = new mongoose.Schema(
+  {
+    slug: String,
+    embedUrl: String,
+    name: String,
+    size: Number,
+    status: String,
+    resolutions: [String],
+  },
+  { _id: false },
+);
+
 const adSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
     advertiser: String,
 
-    video: {
-      uid: { type: String, required: true },
-      hlsUrl: { type: String, required: true },
-      duration: { type: Number, default: 30 },
-      thumbnail: String,
-      status: String,
-      readyToStream: { type: Boolean, default: false },
-    },
+    video: videoSchema,
 
     clickUrl: String,
     skipAfterSeconds: { type: Number, default: 30 },

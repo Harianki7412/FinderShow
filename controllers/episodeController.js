@@ -1,6 +1,7 @@
 const Episode = require("../models/Episode");
 const Content = require("../models/Content");
-const { deleteVideo, deleteImage } = require("../helpers/cloudflareHelper");
+const { deleteImage } = require("../helpers/cloudinaryHelper");
+const { deleteFile } = require("../helpers/abyssHelper");
 const { success, ApiError } = require("../helpers/responseHelper");
 
 exports.listByContent = async (req, res, next) => {
@@ -59,8 +60,9 @@ exports.remove = async (req, res, next) => {
     if (!ep) throw new ApiError("Episode not found", 404);
 
     const cleanup = [];
-    if (ep.video?.uid) cleanup.push(deleteVideo(ep.video.uid));
-    if (ep.thumbnail?.id) cleanup.push(deleteImage(ep.thumbnail.id));
+    if (ep.video?.slug) cleanup.push(deleteFile(ep.video.slug));
+    if (ep.thumbnail?.publicId)
+      cleanup.push(deleteImage(ep.thumbnail.publicId));
     await Promise.allSettled(cleanup);
 
     await ep.deleteOne();

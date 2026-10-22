@@ -1,8 +1,7 @@
 const Ad = require("../models/Ad");
-const { deleteVideo } = require("../helpers/cloudflareHelper");
+const { deleteFile } = require("../helpers/abyssHelper");
 const { success, ApiError } = require("../helpers/responseHelper");
 
-// GET /ads/active
 exports.getActiveAd = async (req, res, next) => {
   try {
     const planCode = req.user?.subscription?.plan || "free";
@@ -21,7 +20,6 @@ exports.getActiveAd = async (req, res, next) => {
   }
 };
 
-// POST /ads/:id/click
 exports.trackClick = async (req, res, next) => {
   try {
     await Ad.findByIdAndUpdate(req.params.id, { $inc: { clicks: 1 } });
@@ -31,7 +29,6 @@ exports.trackClick = async (req, res, next) => {
   }
 };
 
-// Admin CRUD
 exports.list = async (req, res, next) => {
   try {
     const ads = await Ad.find().sort({ createdAt: -1 });
@@ -66,7 +63,7 @@ exports.remove = async (req, res, next) => {
   try {
     const ad = await Ad.findById(req.params.id);
     if (!ad) throw new ApiError("Ad not found", 404);
-    if (ad.video?.uid) await deleteVideo(ad.video.uid);
+    if (ad.video?.slug) await deleteFile(ad.video.slug);
     await ad.deleteOne();
     success(res, {}, "Ad deleted");
   } catch (err) {
