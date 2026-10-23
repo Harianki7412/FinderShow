@@ -32,7 +32,6 @@ exports.startSession = async (req, res, next) => {
     const adIntervalMs =
       adsEnabled && adsPerHour > 0 ? (60 / adsPerHour) * MINUTE_MS : 0;
 
-    // Resolve stream from Abyss
     let streamSlug;
     if (episodeId) {
       const ep = await Episode.findById(episodeId).lean();
@@ -45,7 +44,6 @@ exports.startSession = async (req, res, next) => {
 
     const stream = await getStreamInfo(streamSlug);
 
-    // Watch session
     let session = await WatchSession.findOne({
       user: req.user._id,
       content: content._id,
@@ -127,7 +125,6 @@ exports.getScheduledAd = async (req, res, next) => {
 
     Ad.findByIdAndUpdate(ad._id, { $inc: { impressions: 1 } }).exec();
 
-    // Ad stream
     const adStream = await getStreamInfo(ad.video.slug);
 
     success(res, {
@@ -137,7 +134,7 @@ exports.getScheduledAd = async (req, res, next) => {
         slug: ad.video.slug,
         embedUrl: adStream.embedUrl,
         directUrl: adStream.directUrl,
-        duration: ad.video?.size ? 30 : 30,
+        duration: 30,
         clickUrl: ad.clickUrl,
         skipAfterSeconds: ad.skipAfterSeconds,
       },

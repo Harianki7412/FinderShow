@@ -1,3 +1,4 @@
+const axios = require("axios");
 const FormData = require("form-data");
 const fs = require("fs");
 
@@ -7,137 +8,167 @@ const PLAYER = () => process.env.ABYSS_PLAYER_BASE || "https://abyss.to";
 const KEY = () => process.env.ABYSS_API_KEY;
 
 // ─────────────────────────────────────────────
-//  UPLOAD VIDEO
+//  UPLOAD VIDEO  (axios handles streams correctly)
 // ─────────────────────────────────────────────
-
-/**
- * Upload a video file to Abyss.to.
- * @param {string} filePath - absolute path on disk (from multer)
- * @param {string} filename - original filename
- * @returns {Promise<{ slug: string }>}
- */
 const uploadVideo = async (filePath, filename) => {
   const form = new FormData();
-  form.append("file", fs.createReadStream(filePath), filename);
-
-  const res = await fetch(`${UP()}/${KEY()}`, {
-    method: "POST",
-    headers: form.getHeaders(),
-    body: form,
-    duplex: "half", // required for streaming request bodies
+  form.append("file", fs.createReadStream(filePath), {
+    filename,
+    contentType: "application/octet-stream",
   });
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    const err = new Error(`Abyss upload failed: ${res.status} ${text}`);
-    err.status = res.status;
-    throw err;
+  const url = `${UP()}/${KEY()}`;
+
+  let response;
+  try {
+    response = await axios.post(url, form, {
+      headers: form.getHeaders(),
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+      timeout: 0,
+      validateStatus: () => true,
+    });
+  } catch (err) {
+    const detail = err.response?.data || err.message;
+    throw new Error(
+      `Abyss upload network error: ${
+        typeof detail === "string" ? detail : JSON.stringify(detail)
+      }`,
+    );
   }
 
-  const data = await res.json();
-  if (!data.slug) throw new Error("Abyss upload: no slug returned");
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(
+      `Abyss upload failed (${response.status}): ${JSON.stringify(response.data)}`,
+    );
+  }
+
+  const data = response.data;
+  if (!data || !data.slug) {
+    throw new Error(`Abyss upload: no slug returned → ${JSON.stringify(data)}`);
+  }
   return { slug: data.slug };
 };
 
-/**
- * Upload subtitle file for a video.
- */
+// ─────────────────────────────────────────────
+//  UPLOAD SUBTITLE
+// ─────────────────────────────────────────────
 const uploadSubtitle = async (fileId, buffer, language, filename) => {
-  const qs = new URLSearchParams({
-    key: KEY(),
-    language,
-    filename,
-  }).toString();
+  const url =
+    `${API()}/v1/upload/subtitles/${fileId}` +
+    `?key=${encodeURIComponent(KEY())}` +
+    `&language=${encodeURIComponent(language)}` +
+    `&filename=${encodeURIComponent(filename)}`;
 
-  const res = await fetch(`${API()}/v1/upload/subtitles/${fileId}?${qs}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/octet-stream" },
-    body: buffer,
+  const response = await axios.put(url, buffer, {
+    headers: {
+      "Content-Type": "application/octet-stream",
+      Authorization: `Bearer ${KEY()}`,
+    },
+    maxBodyLength: Infinity,
+    maxContentLength: Infinity,
+    validateStatus: () => true,
   });
 
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Subtitle upload failed: ${res.status} ${text}`);
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(
+      `Subtitle upload failed (${response.status}): ${JSON.stringify(response.data)}`,
+    );
   }
-  return await res.json();
+  return response.data;
 };
 
 // ─────────────────────────────────────────────
 //  FILE INFO / DELETE
 // ─────────────────────────────────────────────
-
 const getFile = async (id) => {
-  const res = await fetch(`${API()}/v1/files/${id}?key=${KEY()}`);
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Abyss get file failed: ${res.status} ${text}`);
+  const response = await axios.get(`${API()}/v1/files/${id}`, {
+    params: { key: KEY() },
+    validateStatus: () => true,
+  });
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(
+      `Abyss get file failed (${response.status}): ${JSON.stringify(response.data)}`,
+    );
   }
-  return await res.json();
+  return response.data;
 };
 
 const deleteFile = async (id) => {
   try {
-    const res = await fetch(`${API()}/v1/files/${id}?key=${KEY()}`, {
-      method: "DELETE",
+    const response = await axios.delete(`${API()}/v1/files/${id}`, {
+      params: { key: KEY() },
+      validateStatus: () => true,
     });
-    return res.ok;
+    return response.status >= 200 && response.status < 300;
   } catch (_) {
     return false;
   }
 };
 
 const listSubtitles = async (fileId) => {
-  const res = await fetch(`${API()}/v1/subtitles/${fileId}/list?key=${KEY()}`);
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.items || [];
+  const response = await axios.get(`${API()}/v1/subtitles/${fileId}/list`, {
+    params: { key: KEY() },
+    validateStatus: () => true,
+  });
+  if (response.status < 200 || response.status >= 300) return [];
+  return response.data.items || [];
 };
 
 const deleteSubtitle = async (subtitleId) => {
   try {
-    const res = await fetch(
-      `${API()}/v1/subtitles/${subtitleId}?key=${KEY()}`,
-      { method: "DELETE" },
-    );
-    return res.ok;
+    const response = await axios.delete(`${API()}/v1/subtitles/${subtitleId}`, {
+      params: { key: KEY() },
+      validateStatus: () => true,
+    });
+    return response.status >= 200 && response.status < 300;
   } catch (_) {
     return false;
   }
 };
 
 // ─────────────────────────────────────────────
+//  QUOTA / ABOUT
+// ─────────────────────────────────────────────
+const getAbout = async () => {
+  const response = await axios.get(`${API()}/v1/about`, {
+    params: { key: KEY() },
+    validateStatus: () => true,
+  });
+  if (response.status < 200 || response.status >= 300) {
+    throw new Error(
+      `Abyss /about failed (${response.status}): ${JSON.stringify(response.data)}`,
+    );
+  }
+  return response.data;
+};
+
+// ─────────────────────────────────────────────
 //  PLAYBACK URLS
 // ─────────────────────────────────────────────
-
-/** Public embed URL (use in a WebView). */
 const getEmbedUrl = (slug) => `${PLAYER()}/e/${slug}`;
-
-/** Direct download link (best-effort). */
 const getDownloadUrl = (slug) => `${PLAYER()}/d/${slug}`;
 
-/**
- * Best-effort extraction of a direct stream URL from the embed page.
- * Abyss may change their HTML structure — update regex if broken.
- */
 const resolveDirectStreamUrl = async (slug) => {
   try {
-    const res = await fetch(getEmbedUrl(slug), {
+    const response = await axios.get(getEmbedUrl(slug), {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         Referer: PLAYER(),
       },
+      timeout: 15000,
+      validateStatus: () => true,
     });
-    if (!res.ok) return null;
+    if (response.status !== 200) return null;
 
-    const html = await res.text();
+    const html = response.data;
     const patterns = [
       /https?:\/\/[^"'\s]+\.m3u8[^"'\s]*/i,
       /"file"\s*:\s*"([^"]+\.mp4[^"]*)"/i,
       /sources\s*:\s*\[\s*{\s*file\s*:\s*"([^"]+)"/i,
       /src\s*:\s*"([^"]+\.mp4[^"]*)"/i,
     ];
-
     for (const p of patterns) {
       const m = html.match(p);
       if (m) return m[1] || m[0];
@@ -148,18 +179,10 @@ const resolveDirectStreamUrl = async (slug) => {
   }
 };
 
-/**
- * Full stream descriptor used by the mobile player.
- */
 const getStreamInfo = async (slug) => {
   const embedUrl = getEmbedUrl(slug);
   const directUrl = await resolveDirectStreamUrl(slug);
-  return {
-    slug,
-    embedUrl,
-    directUrl,
-    isReady: !!directUrl,
-  };
+  return { slug, embedUrl, directUrl, isReady: !!directUrl };
 };
 
 module.exports = {
@@ -169,6 +192,7 @@ module.exports = {
   deleteFile,
   listSubtitles,
   deleteSubtitle,
+  getAbout,
   getEmbedUrl,
   getDownloadUrl,
   resolveDirectStreamUrl,

@@ -5,7 +5,6 @@ const fs = require("fs");
 const TMP_DIR = path.join(__dirname, "..", "tmp", "uploads");
 if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
 
-// ── Images: memory storage (max 10 MB — Cloudinary limit) ──
 const imageFilter = (req, file, cb) => {
   if (file.mimetype.startsWith("image/")) return cb(null, true);
   cb(new Error("Only image files are allowed"), false);
@@ -17,7 +16,6 @@ const uploadImage = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-// ── Videos: disk storage (max 10 GB — Abyss limit) ──
 const videoFilter = (req, file, cb) => {
   if (file.mimetype.startsWith("video/")) return cb(null, true);
   cb(new Error("Only video files are allowed"), false);
@@ -37,7 +35,6 @@ const uploadVideo = multer({
   limits: { fileSize: 10 * 1024 * 1024 * 1024 },
 });
 
-// ── Subtitles: memory storage (max 2 MB) ──
 const subtitleFilter = (req, file, cb) => {
   const ok =
     /\.(srt|vtt|ass|ssa)$/i.test(file.originalname) ||

@@ -53,7 +53,6 @@ exports.login = async (req, res, next) => {
       throw new ApiError("Invalid email or password", 401);
     }
 
-    // Auto-expire paid plans
     if (
       user.subscription?.plan !== "free" &&
       user.subscription?.expiresAt &&

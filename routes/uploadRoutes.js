@@ -7,7 +7,10 @@ const {
   uploadSubtitle,
 } = require("../middleware/upload");
 
-// ── Video (Abyss.to) ──
+// Health check (verify Abyss key + network)
+router.get("/abyss/health", protect, adminOnly, ctrl.abyssHealth);
+
+// Video (Abyss.to)
 router.post(
   "/video",
   protect,
@@ -19,7 +22,7 @@ router.get("/video/:slug/status", protect, adminOnly, ctrl.getVideoStatus);
 router.get("/video/:slug/stream", protect, adminOnly, ctrl.getVideoStream);
 router.delete("/video/:slug", protect, adminOnly, ctrl.deleteVideoAsset);
 
-// ── Subtitles ──
+// Subtitles
 router.post(
   "/video/:slug/subtitles",
   protect,
@@ -35,7 +38,7 @@ router.get(
 );
 router.delete("/subtitles/:id", protect, adminOnly, ctrl.deleteSubtitleAsset);
 
-// ── Image (Cloudinary) ──
+// Image (Cloudinary)
 router.post(
   "/image",
   protect,

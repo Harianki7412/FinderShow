@@ -25,11 +25,7 @@ const episodeSchema = new mongoose.Schema(
     title: { type: String, required: true },
     description: { type: String, default: "" },
 
-    thumbnail: {
-      url: String,
-      publicId: String,
-    },
-
+    thumbnail: { url: String, publicId: String },
     video: videoSchema,
 
     isPremium: { type: Boolean, default: true },

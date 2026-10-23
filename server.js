@@ -9,12 +9,10 @@ const connectDB = require("./config/db");
 const routes = require("./routes");
 const errorHandler = require("./middleware/errorHandler");
 
-// Ensure temp dir exists for video uploads
 const tmpDir = path.join(__dirname, "tmp", "uploads");
 if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
 
 const app = express();
-
 connectDB();
 
 app.use(
@@ -32,7 +30,7 @@ app.use(express.urlencoded({ extended: true, limit: "15mb" }));
 app.use(morgan("dev"));
 
 app.get("/", (_, res) =>
-  res.json({ status: "ok", service: "FinderShow-api", version: "v1" }),
+  res.json({ status: "ok", service: "findershow-api", version: "v1" }),
 );
 
 app.use("/api/v1", routes);
@@ -44,4 +42,6 @@ app.use((req, res) =>
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server on port ${PORT}`.cyan.bold));
+app.listen(PORT, () =>
+  console.log(`🚀 FinderShow server on port ${PORT}`.cyan.bold),
+);

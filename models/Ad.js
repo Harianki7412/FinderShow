@@ -16,9 +16,7 @@ const adSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
     advertiser: String,
-
     video: videoSchema,
-
     clickUrl: String,
     skipAfterSeconds: { type: Number, default: 30 },
     isActive: { type: Boolean, default: true },

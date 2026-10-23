@@ -1,13 +1,9 @@
 const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
 
-/**
- * Upload an image buffer to Cloudinary.
- * @returns Promise<{ url, publicId, width, height }>
- */
 const uploadImage = (buffer, filename, folder) => {
   const targetFolder =
-    folder || process.env.CLOUDINARY_IMAGE_FOLDER || "FinderShow/images";
+    folder || process.env.CLOUDINARY_IMAGE_FOLDER || "findershow/images";
 
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -27,14 +23,10 @@ const uploadImage = (buffer, filename, folder) => {
         });
       },
     );
-
     streamifier.createReadStream(buffer).pipe(stream);
   });
 };
 
-/**
- * Delete an image from Cloudinary by public ID.
- */
 const deleteImage = async (publicId) => {
   if (!publicId) return false;
   try {
@@ -48,9 +40,6 @@ const deleteImage = async (publicId) => {
   }
 };
 
-/**
- * Build a transformed URL (optional helper for on-the-fly image resizing).
- */
 const buildTransformedUrl = (publicId, width = 400) =>
   cloudinary.url(publicId, {
     width,
@@ -60,8 +49,4 @@ const buildTransformedUrl = (publicId, width = 400) =>
     secure: true,
   });
 
-module.exports = {
-  uploadImage,
-  deleteImage,
-  buildTransformedUrl,
-};
+module.exports = { uploadImage, deleteImage, buildTransformedUrl };

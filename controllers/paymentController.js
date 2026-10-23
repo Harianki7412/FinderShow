@@ -21,7 +21,7 @@ exports.createOrder = async (req, res, next) => {
     if (!plan) throw new ApiError("Plan not found", 404);
 
     const amountPaise = Math.round(plan.price * 100);
-    const receipt = `FinderShow_${planCode}_${req.user._id}_${Date.now()}`;
+    const receipt = `findershow_${planCode}_${req.user._id}_${Date.now()}`;
 
     const order = await razorpay.orders.create({
       amount: amountPaise,

@@ -1,23 +1,18 @@
 const mongoose = require("mongoose");
 
-// Cloudinary image
 const imageSchema = new mongoose.Schema(
-  {
-    url: String,
-    publicId: String,
-  },
+  { url: String, publicId: String },
   { _id: false },
 );
 
-// Abyss.to video
 const videoSchema = new mongoose.Schema(
   {
     slug: String,
     embedUrl: String,
     name: String,
     size: Number,
-    status: String, // 'waiting' | 'ready' | 'error'
-    resolutions: [String], // ['SD','HD','FullHD','2K','4K']
+    status: String,
+    resolutions: [String],
   },
   { _id: false },
 );

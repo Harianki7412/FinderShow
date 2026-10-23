@@ -98,18 +98,13 @@ exports.remove = async (req, res, next) => {
     if (!content) throw new ApiError("Content not found", 404);
 
     const cleanup = [];
-
-    // Cloudinary images
     if (content.poster?.publicId)
       cleanup.push(deleteImage(content.poster.publicId));
     if (content.backdrop?.publicId)
       cleanup.push(deleteImage(content.backdrop.publicId));
-
-    // Abyss videos
     if (content.trailer?.slug) cleanup.push(deleteFile(content.trailer.slug));
     if (content.video?.slug) cleanup.push(deleteFile(content.video.slug));
 
-    // Episodes
     const episodes = await Episode.find({ content: content._id });
     episodes.forEach((ep) => {
       if (ep.video?.slug) cleanup.push(deleteFile(ep.video.slug));
